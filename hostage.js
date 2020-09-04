@@ -54,8 +54,8 @@ class Hostage {
                 //super.getAnimation().setFramesSequence(Anim_R);
             }
         } else if (!getObstacle(((this.getXAsInt() + this.dx) + this.width) - 1, ((this.getYAsInt()) + this.height) - 1)
-                && !getObstacle(((this.getXAsInt() + this.dx) + this.width) - 1, this.getYAsInt())) {
-                //&& super.getXAsInt() < getScreenWidth() - 32) {
+                && !getObstacle(((this.getXAsInt() + this.dx) + this.width) - 1, this.getYAsInt())
+                && this.getXAsInt() < canvas.width - 32) {
             move = true;
             // Animate();
             //super.getAnimation().update();

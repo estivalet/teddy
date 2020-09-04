@@ -65,7 +65,7 @@ class TileMap {
     }
 
     getTileByPos(pos) {
-		return this.tiles[pos % this.cellsX, parseInt(pos / this.cellsX)];
+		return this.tiles[pos];
 	}
 
     
@@ -82,6 +82,7 @@ class TileMap {
 	}
 
     setTile(x, y, tile) {
+        console.log('setting tile ' + tile.id + " in " + x + "  " + y);
 		this.tiles[y * this.cellsX + x] = tile;
 	}
 

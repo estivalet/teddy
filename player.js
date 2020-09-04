@@ -32,15 +32,34 @@ class Player {
     update(dt) {
 
         var move = false;
-        if(left) {
+        if(space) {
+            if(left) {
+                addCloud(this.getXAsInt(), this.getYAsInt(), -32, 0);
+            } else if(right) {
+                addCloud(this.getXAsInt(), this.getYAsInt(),(this.width + 32) - 1, 0);
+            } else if(up) {
+                if(this.dx < 0) {
+                    addCloud(this.getXAsInt(), this.getYAsInt(),-32, -1);
+                } else if(this.dx > 0) {
+                    addCloud(this.getXAsInt(), this.getYAsInt(), (this.width + 32) - 1, -1);
+                }
+            } else if(down) {
+                if(this.dx < 0) {
+                    addCloud(this.getXAsInt(), this.getYAsInt(), -32, this.height + 1);
+                } else if(this.dx > 0) {
+                    addCloud(this.getXAsInt(), this.getYAsInt(), (this.width + 32) - 1, this.height + 1);
+                }
+            }
+            
+        } else if(left) {
             this.dx = -2;
-            if (!getObstacle(this.getXAsInt() + this.dx, this.getYAsInt() ) && this.getXAsInt() >= 0) {
+            if (!getObstacle(this.getXAsInt() + this.dx, this.getYAsInt() +this.height-1) && this.getXAsInt() >= 0) {
                 move = true;
             }
             this.framesSequence = config.assets.images["player"].left_frames;
         } else if(right) {
             this.dx = 2;
-            if (!getObstacle(this.getXAsInt() + this.dx + this.width - 1, this.getYAsInt())) {
+            if (!getObstacle(this.getXAsInt() + this.dx + this.width - 1, this.getYAsInt() + this.height-1) && this.getXAsInt() < canvas.width - 32) {
                 move = true;
             }
             this.framesSequence = config.assets.images["player"].right_frames;
@@ -114,6 +133,9 @@ class Player {
             this.currentFrame = this.framesSequence[0];
         }  
     }
+
+ 
+
 
     getXAsInt() {
 		return Math.round(this.x);
