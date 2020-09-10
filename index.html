@@ -7,11 +7,14 @@
 </style>
 <canvas id="game" width="640px" height="384px" style="background-color: #000"></canvas>
 
-<script src="common.js"></script>
+<script src="../jagaf/common.js"></script>
+<script src="../jagaf/sprite.js"></script>
+<script src="../jagaf/tile.js"></script>
+<script src="../jagaf/tile-extractor.js"></script>
+<script src="../jagaf/tilemap.js"></script>
+
 <script src="loader.js"></script>
-<script src="tile.js"></script>
-<script src="tile-extractor.js"></script>
-<script src="tilemap.js"></script>
+<script src="level.js"></script>
 <script src="player.js"></script>
 <script src="hostage.js"></script>
 <script src="gyrus.js"></script>
@@ -21,6 +24,8 @@
 <script src="roller.js"></script>
 <script src="ball.js"></script>
 <script src="cloud.js"></script>
+<script src="crumble.js"></script>
+<script src="explosion.js"></script>
 <script>
 
 
@@ -28,7 +33,7 @@ let canvas = document.getElementById('game');
 let context = canvas.getContext('2d');
 
 let tileExtractor;
-let tileMap;
+let level;
 
 let images = {};
 
@@ -37,6 +42,8 @@ let allowNewCloud = true;
 let cloud;
 let hostage;
 let enemies = [];
+let crumbles = [];
+let freezeTimer;
 
 let portalPos;
 
@@ -58,200 +65,13 @@ function init(levelName) {
 	document.addEventListener("keyup", keyUp);
 }
 
-function getPlatform(i, j) {
-	if (j < 0) {
-		return false;
-	}
 
-	// Tile 19 is an empty tile. But it is different than tile 0
-	// because it is considered as a plataform and obstacle too.
-	// See also GetPlataform and GetObstacle methods.
-
-	return tileMap.getTile(parseInt(i / 32), parseInt(j / 32)).id != 0
-			&& (tileMap.getTile(parseInt(i / 32), parseInt(j / 32)).id < 6 || 
-			    tileMap.getTile(parseInt(i / 32), parseInt(j / 32)).id == 19);
-
-}
-
-
-function getBlock(i, j) {
-	if (j < 0) {
-		j = 0;
-	}
-	
-	//context.fillText(`i=${parseInt(i / 32)} j=${parseInt(j / 32)}`, 10, 50);
-	//var index = parseInt(j / 32) * 20 + parseInt(i / 32);
-      //  context.fillText(`index=${index}`, 20, 70);
-
-
-	return tileMap.getTile(parseInt(i / 32), parseInt(j / 32)).id;
-}
-
-function getObstacle(i, j) {
-
-	// Tile 19 is an empty tile. But it is different than tile 0
-	// because it is considered as a plataform and obstacle too.
-	// See also GetPlataform and GetObstacle methods.
-	//debugger;
-	var block = getBlock(i, j);
-	return  block != 0 && (block < 6 || tileMap.getTile(parseInt(i / 32), parseInt(j / 32)).id == 19);// 40;
-}
-
-function getPickUp(i, j) {
-	if (j < 0) {
-		return;
-	}
-	var k = parseInt(i / 32) + (parseInt(j / 32) * 20);
-	switch (tileMap.getTile(parseInt(i / 32),parseInt(j / 32)).id) {
-	case 8:// 42: // 'd'
-		// Enemy.freezeTimer = 200;
-		break;
-
-	case 9:// 43: // 'e'
-		//Invincible = 200;
-		break;
-
-	case 10:// 44: // 'f' // Got the key open the door
-		// GameRepository.get().getCurrentMap().setMapElement(
-		// new DefaultMapElement(7), portalPos);
-		//tm.setTile(portalPos, new Tile(7, getImage(7)));
-		// return;
-		console.log('get key');
-		tileMap.setTileByPos(portalPos, tileExtractor.tiles[7]);
-		break;
-
-	case 11:// 45: // 'g'
-		break;
-
-	case 12:// 46: // 'h'
-		break;
-	default:
-		return;
-	}
-	// GameRepository.get().getCurrentMap().setMapElement(
-	// new DefaultMapElement(0), k);
-	//tm.setTile(k, new Tile(0, getImage(0)));
-	tileMap.setTileByPos(k, tileExtractor.tiles[0]);
-}
-
-function addCloud(i, j, k, l) {
-	console.log("ALLOW=" + allowNewCloud);
-	if (!allowNewCloud) {
-		return;
-	}
-	allowNewCloud = false;
-	i += k;
-	j += l;
-	if (i < 0 || i >= canvas.width) {
-		return;
-	}
-	var i1 = parseInt(i / 32) + (parseInt(j / 32) * 20);
-	if (i1 >= 0 && i1 < 240) {
-		console.log('id='+tileMap.getTileByPos(i1).id + " " +i1);
-		if (tileMap.getTileByPos(i1).id == 0) { //&& !EnemyInRange(i1)) {
-			//tileMap.setTileByPos(i1, tileExtractor.tiles[2]);
-			console.log("ADD CLOUD in " + i1);
-			cloud = new Cloud(images.cloud, i ,j, 32, 32, "on", config.assets.images["cloud"].on_frames);
-			return;
-		}
-		/*} else {
-			allowNewCloud = true;
-		}*/
-		if (tileMap.getTileByPos(i1).id  == 2) {
-			//tileMap.setTileByPos(i1, tileExtractor.tiles[2]);
-			tileMap.setTileByPos(i1, tileExtractor.tiles[0]);
-			console.log("REMOVE CLOUD");
-			cloud = new Cloud(images.cloud, i ,j, 32, 32, "off", config.assets.images["cloud"].off_frames);
-			return;
-		}
-	}
-}
 
 function startGame() {
-	tileMap = new TileMap(20, 12, 32, 32, 640, 384);
 	tileExtractor = new TileExtractor(images.tiles, 32);
 	tileExtractor.getTiles().then(tiles => {
-		tile0 = tileExtractor.tiles[0];
-		data = config.assets.levels["03"].data;
-		for(var i=0; i < data.length; i++) {
-			var l = (i % 20) * 32;
-			var i1 = parseInt(i / 20) * 32;
-
-			tile = tileExtractor.tiles[data[i]];
-			switch(tile.id) {
-				case 26:
-					console.log('player');
-					player = new Player(images.player, l ,i1, 32, 32, 1, config.assets.images["player"].left_frames, config.assets.images["player"].right_frames);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 30:
-					hostage = new Hostage(images.hostage, l ,i1, 32, 32, 1, config.assets.images["hostage"].left_frames, config.assets.images["hostage"].right_frames);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 24:
-					var gyrus = new Gyrus(images.gyrus, l ,i1, 32, 32, 1, config.assets.images["gyrus"].left_frames, config.assets.images["gyrus"].right_frames);
-					enemies.push(gyrus);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 34:
-					var wood = new Wood(images.wood, l ,i1, 32, 32, 1, config.assets.images["wood"].left_frames, config.assets.images["wood"].right_frames);
-					enemies.push(wood);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 22:
-					var ballon = new Ballon(images.ballon, l ,i1, 32, 32, -1, config.assets.images["ballon"].left_frames, config.assets.images["ballon"].right_frames);
-					enemies.push(ballon);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 23:
-					var ballon = new Ballon(images.ballon, l ,i1, 32, 32, 1, config.assets.images["ballon"].left_frames, config.assets.images["ballon"].right_frames);
-					enemies.push(ballon);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 32:
-					var thing = new Thing(images.thing, l ,i1, 32, 32, -1, config.assets.images["thing"].left_frames, config.assets.images["thing"].right_frames);
-					enemies.push(thing);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 33:
-					var thing = new Thing(images.thing, l ,i1, 32, 32, 1, config.assets.images["thing"].left_frames, config.assets.images["thing"].right_frames);
-					enemies.push(thing);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 28:
-					var roller = new Roller(images.roller, l ,i1, 32, 32, 1, config.assets.images["roller"].left_frames, config.assets.images["roller"].right_frames);
-					enemies.push(roller);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 29:
-					var roller = new Roller(images.roller, l ,i1, 32, 32, -1, config.assets.images["roller"].left_frames, config.assets.images["roller"].right_frames);
-					enemies.push(roller);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 20:
-					var ball = new Ball(images.ball, l ,i1, 32, 32, -2, config.assets.images["ball"].left_frames, config.assets.images["ball"].right_frames);
-					enemies.push(ball);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 21:
-					var ball = new Ball(images.ball, l ,i1, 32, 32, 2, config.assets.images["ball"].left_frames, config.assets.images["ball"].right_frames);
-					enemies.push(ball);
-					tileMap.setTileByPos(i, tile0);
-					break;
-				case 6:
-					portalPos = i;
-					tileMap.setTileByPos(i, tile);
-					break;
-
-				default:
-					tileMap.setTileByPos(i, tile);
-					break;
-
-			}
-		}
-
-		window.requestAnimationFrame(frame);
-
+		level = new Level();
+		level.load();
 	});
 
 
@@ -259,36 +79,51 @@ function startGame() {
 
 function render(dt) {
 	context.clearRect( 0,0, canvas.width , canvas.height );
-	//context.drawImage(images.tiles, 0, 0);
-	//context.drawImage(tileExtractor.tiles[1],0,0);
-
-	/*
-	data = config.assets.levels["01"].data;
-	for(var i=0; i < data.length; i++) {
-		var x = (i % 20) * 32;
-		var y = parseInt(i / 20) * 32;
-		//context.drawImage(tileExtractor.tiles[data[i]], x, y);
-		tileExtractor.tiles[data[i]].render(context, x, y);
-	}*/
-	tileMap.render(context);
+	level.render(context);
 	player.render(context);
 	hostage.render(context);
 	enemies.forEach(enemy => enemy.render(context));
 	if(cloud) {
 		cloud.render(context);
 	}
+	crumbles.forEach(crumble => crumble.render(context));
 
 	context.fillText(`x=${parseInt(player.x / 32)} y=${parseInt(player.y / 32)}`, 10, 50);
 }
 
     
 function update(step) {
+	if (freezeTimer > 0) {
+		freezeTimer--;
+	}
+
 	player.update(step);
 	hostage.update(step);
-	enemies.forEach(enemy => enemy.update(step));
+
+	if(!freezeTimer > 0) {
+		enemies.forEach(enemy => enemy.update(step));
+	}
+
+	if (freezeTimer > 0 && freezeTimer <= 20) {
+		if ((freezeTimer & 1) > 0) {
+			enemies.forEach(enemy => enemy.visible = true);
+		} else {
+			enemies.forEach(enemy => enemy.visible = false);
+		}
+	}
+
+
 	if(cloud) {
 		cloud.update(step);
 	}
+
+	crumbles.forEach(crumble =>crumble.update(step));
+	crumbles.forEach(function (crumble, index) {
+		console.log('crumble ' + crumble.active);
+		if(!crumble.active) {
+			crumbles.splice(index, 1);
+		}
+	});
 }    
 
 function frame() {

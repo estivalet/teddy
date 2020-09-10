@@ -1,24 +1,19 @@
-class Cloud extends Sprite {
+class Crumble extends Sprite {
     
-    constructor(image, x, y, width, height, status, frames) {
-        super(image, x, y, width, height);
-        this.status = status;
-        this.framesSequence = frames;
+    constructor(image, x, y, width, height, framesSquence) {
+        super(image, x, y, width, height, framesSquence);
+
+        this.active = true;
         this.pos = parseInt(this.x / 32) + (parseInt(this.y / 32) * 20);
     }
 
     update(dt) {
         // one time only animation.
         if (this.framesSequenceIndex > this.framesSequence.length - 1) {
-            if(this.status == "on") {
-                let tile = tileExtractor.tiles[2];
-                level.tileMap.setTileByPos(this.pos, tile);
-            } else {
-                let tile = tileExtractor.tiles[0];
-                level.tileMap.setTileByPos(this.pos, tile);
-            }
-            cloud = null;
-            allowNewCloud = true;
+            console.log("finish crumble  "  +this.pos);
+            let tile = tileExtractor.tiles[0];
+            level.tileMap.setTileByPos(this.pos, tile);
+            this.active = false;
             return false;
         }
 
